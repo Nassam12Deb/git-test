@@ -1,4 +1,4 @@
-name: PHP Composer
+name: PHP Composer CI
 
 on:
   push:
@@ -15,13 +15,23 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    # 1️⃣ Récupérer le code du dépôt
     - uses: actions/checkout@v4
 
-    - name: Validate composer.json and composer.lock
+    # 2️⃣ Installer PHP et extensions nécessaires
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.2'
+        extensions: mbstring, intl, xml, curl
+        coverage: xdebug
+
+    # 3️⃣ Valider composer.json et composer.lock
+    - name: Validate composer.json
       run: composer validate --strict
 
+    # 4️⃣ Mettre en cache les dépendances Composer
     - name: Cache Composer packages
-      id: composer-cache
       uses: actions/cache@v3
       with:
         path: vendor
@@ -29,11 +39,15 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-php-
 
-    - name: Install dependencies
-      run: composer install --prefer-dist --no-progress
+    # 5️⃣ Installer les dépendances
+    - name: Install Composer dependencies
+      run: composer install --prefer-dist --no-progress --no-interaction
 
-    # Add a test script to composer.json, for instance: "test": "vendor/bin/phpunit"
-    # Docs: https://getcomposer.org/doc/articles/scripts.md
+    # 6️⃣ Exécuter les tests PHPUnit
+    - name: Run PHPUnit tests
+      run: vendor/bin/phpunit --colors=always --testsuite default
 
-    # - name: Run test suite
-    #   run: composer run-script test
+    # 7️⃣ Afficher un message si les tests échouent (optionnel)
+    - name: Notify on failure
+      if: failure()
+      run: echo "⚠️ Les tests ont échoué !"
